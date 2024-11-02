@@ -1,0 +1,62 @@
+import numpy as np
+import random
+
+# Number of nodes
+NUM_NODES = 15
+
+# Initialize costs between 0 and 1 for each node
+costs = np.random.rand(NUM_NODES)
+
+# Learning parameters
+alpha = 0.1  # Learning rate
+gamma = 0.9  # Discount factor for future rewards
+
+# Q-table for storing rewards
+Q_table = np.zeros((NUM_NODES, NUM_NODES))
+
+# Function to request costs from neighbors
+def request_costs_from_neighbors(node):
+    neighbors = [i for i in range(NUM_NODES) if i != node]  # All nodes except the current one
+    neighbor_costs = {neighbor: costs[neighbor] for neighbor in neighbors}
+    return neighbor_costs
+
+# Reinforcement learning procedure to receive and handle assignments
+def receive_assignment(query_node):
+    print(f"Query received at node {query_node}.")
+    
+    # Step 2: Compute the local cost for the query node
+    local_cost = costs[query_node]
+    print(f"Local cost for node {query_node}: {local_cost:.4f}")
+    
+    # Step 3: Request cost from every neighbor
+    neighbor_costs = request_costs_from_neighbors(query_node)
+    
+    # Print costs for all nodes before assignment
+    print("\nCosts for all nodes:")
+    for node in range(NUM_NODES):
+        print(f"Node {node}: {costs[node]:.4f}")
+    
+    # Step 4: If the local cost is the lowest or this node was the coordinator
+    if local_cost <= min(neighbor_costs.values()):
+        print(f"\nNode {query_node} is the join node (lowest cost or coordinator).")
+        return query_node  # This node becomes the join node
+    
+    else:
+        # Step 7: From the list of nodes with the lowest cost, choose one randomly
+        lowest_cost_nodes = [node for node, cost in neighbor_costs.items() if cost == min(neighbor_costs.values())]
+        chosen_node = random.choice(lowest_cost_nodes)
+        
+        # Display chosen node and all node costs
+        print(f"\nNode {query_node} assigned the query to node {chosen_node} with the lowest cost: {costs[chosen_node]:.4f}")
+        
+        # Update the Q-table for reinforcement learning
+        reward = -costs[chosen_node]  # Negative reward as the objective is to minimize cost
+        Q_table[query_node, chosen_node] = (1 - alpha) * Q_table[query_node, chosen_node] + alpha * (reward + gamma * np.max(Q_table[chosen_node]))
+        
+        return chosen_node
+
+# Simulate the process for 10 rounds
+for round_num in range(2):
+    query_node = random.randint(0, NUM_NODES - 1)  # Randomly pick a node to receive the query
+    print(f"\n--- Round {round_num + 1} ---")
+    receive_assignment(query_node)
